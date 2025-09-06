@@ -171,6 +171,31 @@ def test_weights_regressor():
     assert_almost_equal(ereg_none_pred, ereg_equal_pred, decimal=2)
 
 
+def test_sample_weight_with_none_estimator_regressor():
+    """Test that sample_weight works when an estimator is set to None for VotingRegressor"""
+    from sklearn.linear_model import LinearRegression
+    from sklearn.ensemble import RandomForestRegressor
+    
+    reg1 = LinearRegression()
+    reg2 = RandomForestRegressor(random_state=123, n_estimators=10)
+    
+    # Create voting regressor with both estimators
+    ereg = VotingRegressor(estimators=[('lr', reg1), ('rf', reg2)])
+    
+    # First fit should work
+    ereg.fit(X_r, y_r, sample_weight=np.ones(y_r.shape))
+    
+    # Set one estimator to None
+    ereg.set_params(lr=None)
+    
+    # Second fit should also work (this would fail before the fix)
+    ereg.fit(X_r, y_r, sample_weight=np.ones(y_r.shape))
+    
+    # Verify it still predicts correctly
+    predictions = ereg.predict(X_r)
+    assert len(predictions) == len(y_r)
+
+
 @pytest.mark.filterwarnings('ignore: Default solver will be changed')  # 0.22
 @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
 @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
@@ -360,6 +385,32 @@ def test_sample_weight_kwargs():
 
     # Should not raise an error.
     eclf.fit(X, y, sample_weight=np.ones((len(y),)))
+
+
+@pytest.mark.filterwarnings('ignore: Default solver will be changed')  # 0.22
+@pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+@pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+def test_sample_weight_with_none_estimator():
+    """Test that sample_weight works when an estimator is set to None"""
+    clf1 = LogisticRegression(random_state=123)
+    clf2 = RandomForestClassifier(random_state=123)
+    
+    # Create voting classifier with both estimators
+    eclf = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2)], 
+                           voting='soft')
+    
+    # First fit should work
+    eclf.fit(X, y, sample_weight=np.ones((len(y),)))
+    
+    # Set one estimator to None
+    eclf.set_params(lr=None)
+    
+    # Second fit should also work (this would fail before the fix)
+    eclf.fit(X, y, sample_weight=np.ones((len(y),)))
+    
+    # Verify it still predicts correctly
+    predictions = eclf.predict(X)
+    assert len(predictions) == len(y)
 
 
 @pytest.mark.filterwarnings('ignore: Default solver will be changed')  # 0.22
